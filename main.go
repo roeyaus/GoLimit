@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	limiter, err := ratelimiter.NewRateLimiter(3600, 100)
+	limiter, err := ratelimiter.NewRateLimiter(65, 5)
 	if err != nil {
 		fmt.Printf("%v", err)
 	}

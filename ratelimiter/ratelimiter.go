@@ -27,6 +27,12 @@ type RateLimiter struct {
 }
 
 func NewRateLimiter(intervalInSeconds int, requestsPerInterval int) (*RateLimiter, error) {
+	if requestsPerInterval < 1 {
+		return nil, fmt.Errorf("requestsPerInterval must be > 0")
+	}
+	if intervalInSeconds < 1 {
+		return nil, fmt.Errorf("intervalInSeconds must be > 0")
+	}
 	if c, err := cache.GetRedisClient(intervalInSeconds, requestsPerInterval); err != nil {
 		return nil, err
 	} else {

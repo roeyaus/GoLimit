@@ -21,7 +21,7 @@ In addition, we shall provide an interface that can be extended with a different
 
 Things left to do : 
 
-* make shit work
+* make shit work (fix redis go pipeline)
 * tests, integration tests
 * Add generic extensible interface
 * Add timeout context (if redis not responding)
