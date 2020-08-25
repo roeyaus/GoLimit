@@ -38,7 +38,7 @@ func (c RedisClient) GetRequestsWithinInterval(id string, intervalInSeconds int)
 	historicTS := roundedTS - int64(intervalInSeconds)
 	hts := fmt.Sprintf("%d", historicTS)
 	//get all timestamps for this ID
-	fmt.Printf("%v %v", roundedts, hts)
+	fmt.Printf("%v %v\n", roundedts, hts)
 	pipe := c.redisClient.TxPipeline()
 	cmd := pipe.ZRangeByScoreWithScores(ctx, id, &redis.ZRangeBy{Min: hts, Max: roundedts, Offset: 0, Count: 0})
 	if cmd.Err() != nil {
@@ -56,7 +56,7 @@ func (c RedisClient) GetRequestsWithinInterval(id string, intervalInSeconds int)
 			return 0, fmt.Errorf("Cannot aggregate num requests, %v is not int", v.Member)
 		}
 	}
-	fmt.Printf("numRequests for current : %v,  totalRequestsInInterval : %v", newNumRequests, totalRequestsInInterval)
+	fmt.Printf("numRequests for current : %v,  totalRequestsInInterval : %v\n", newNumRequests, totalRequestsInInterval)
 	//remove the current request count in the sorted set for the current id/timestamp
 	cmd2 := pipe.ZRemRangeByScore(ctx, id, roundedts, roundedts)
 	if cmd2.Err() != nil {
@@ -68,6 +68,7 @@ func (c RedisClient) GetRequestsWithinInterval(id string, intervalInSeconds int)
 	if cmd3.Err() != nil {
 		return 0, fmt.Errorf("ZAdd operation failed because : %v", cmd3.Err())
 	}
+	fmt.Printf("%v", cmd3.Val())
 	//now check if the key is set to expire or not and create an expiry for it
 	ttl := pipe.TTL(ctx, id)
 	if ttl.Err() != nil {
@@ -116,6 +117,6 @@ func GetTimestampByInterval(intervalInSeconds int, ts int64) int64 {
 	} else if intervalInSeconds < 3600 {
 		return int64(ts/60) * 60
 	} else {
-		return int64(ts / 3600 * 3600)
+		return int64(ts/3600) * 3600
 	}
 }

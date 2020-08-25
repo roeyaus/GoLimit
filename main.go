@@ -2,16 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"github.com/roeyaus/airtasker/ratelimiter"
+	ratelimiter "github.com/roeyaus/airtasker/ratelimiter"
+	"github.com/roeyaus/airtasker/utils"
 )
 
 func main() {
-	limiter := ratelimiter.NewRateLimiter(3600, 100)
-
-	http.HandleFunc("/", limit.HandleRequest(ExampleHandler))
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	limiter, err := ratelimiter.NewRateLimiter(3600, 100)
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", ExampleHandler)
+	if err := http.ListenAndServe(":8080", limiter.HandleRequest(mux)); err != nil {
 		panic(err)
 	}
 }
@@ -19,7 +24,7 @@ func main() {
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	resp, _ := json.Marshal(map[string]string{
-		"ip": GetIP(r),
+		"ip": utils.GetIP(r),
 	})
 	w.Write(resp)
 }

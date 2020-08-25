@@ -14,10 +14,14 @@ if x > 60 but < 3600 , we round down to the nearest minute, and if x > 3600 we r
     * get current timestamp.
     * get requester ID
     * round timestamp down to the nearest second/minute/hour depending on X (see constraint above)
-    * INC the timestamp count (timestamp : count) for redis key "requester ID" and get the request count (<-- atomic operation)
-    * if no expiry set for timestamp hash key, set expiry for timestamp + 1 second/minute/hour depending on X.
-    * if request count > N, return 429.
-      otherwise:
-    * handle request
+    
 
 In addition, we shall provide an interface that can be extended with a different rate limiting implementation and used instead.
+
+
+Things left to do : 
+
+* make shit work
+* tests, integration tests
+* Add generic extensible interface
+* Add timeout context (if redis not responding)
