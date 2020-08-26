@@ -21,7 +21,8 @@ In addition, we shall provide an interface that can be extended with a different
 
 Things left to do : 
 
-* make shit work (fix redis go pipeline)
+* make shit work (fix redis go pipeline) <--- DONE
+* Make redismock v7.0.1 work 
 * tests, integration tests
-* Add generic extensible interface
-* Add timeout context (if redis not responding)
+* Add generic extensible interface <-- partially done
+* Add timeout context (if redis not responding) <--- not relevant with V7

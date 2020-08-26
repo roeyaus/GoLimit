@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	cache "github.com/roeyaus/airtasker/cache/redis"
+	"github.com/roeyaus/airtasker/cache"
+	rediscache "github.com/roeyaus/airtasker/cache/redis"
 	"github.com/roeyaus/airtasker/utils"
 )
 
@@ -21,7 +22,7 @@ type RateLimiterInt interface {
 }
 
 type RateLimiter struct {
-	redisClient         *cache.RedisClient
+	client              cache.CacheClient
 	intervalInSeconds   int
 	requestsPerInterval int
 }
@@ -33,20 +34,20 @@ func NewRateLimiter(intervalInSeconds int, requestsPerInterval int) (*RateLimite
 	if intervalInSeconds < 1 {
 		return nil, fmt.Errorf("intervalInSeconds must be > 0")
 	}
-	if c, err := cache.GetRedisClient(intervalInSeconds, requestsPerInterval); err != nil {
+	if c, err := rediscache.GetRedisClient("localhost:6379", "", 0, intervalInSeconds, requestsPerInterval); err != nil {
 		return nil, err
 	} else {
-		r := &RateLimiter{redisClient: c, intervalInSeconds: intervalInSeconds, requestsPerInterval: requestsPerInterval}
+		r := &RateLimiter{client: c, intervalInSeconds: intervalInSeconds, requestsPerInterval: requestsPerInterval}
 		return r, nil
 	}
 }
 
 func (l RateLimiter) IsRequestAllowedForIP(ip string) (bool, error) {
-	numRequests, err := l.redisClient.GetRequestsWithinInterval(ip, l.intervalInSeconds)
+	numRequests, err := l.client.IncAndGetRequestsWithinInterval(ip, l.intervalInSeconds)
 	if err != nil {
 		return false, fmt.Errorf("could'nt get number of requests made this interval because %v", err)
 	}
-	if numRequests >= l.requestsPerInterval {
+	if numRequests > l.requestsPerInterval {
 		return false, nil
 	}
 	return true, nil
