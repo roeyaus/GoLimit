@@ -9,62 +9,50 @@ import (
 	"github.com/roeyaus/airtasker/utils"
 )
 
-type RateLimiterResponse struct {
-	StatusCode    int
-	StatusMessage string
-}
-
-//RateLimiterInt is an interface for implementing a rate-limiter with a certain strategy
-type RateLimiterInt interface {
-	//This function will return
-	HandleRequestIfAllowed(handler http.Handler) http.Handler
-	Allowed()
-}
-
 type RateLimiter struct {
-	client              cache.CacheClient
-	intervalInSeconds   int
-	requestsPerInterval int
+	client cache.CacheClient
 }
 
-func NewRateLimiter(intervalInSeconds int, requestsPerInterval int) (*RateLimiter, error) {
-	if requestsPerInterval < 1 {
-		return nil, fmt.Errorf("requestsPerInterval must be > 0")
+func NewRateLimiter(windowInSeconds int, maxRequestsPerWindow int) (*RateLimiter, error) {
+	if maxRequestsPerWindow < 1 {
+		return nil, fmt.Errorf("maxRequestsPerWindow must be > 0")
 	}
-	if intervalInSeconds < 1 {
-		return nil, fmt.Errorf("intervalInSeconds must be > 0")
+	if windowInSeconds < 1 {
+		return nil, fmt.Errorf("windowInSeconds must be > 0")
 	}
-	if c, err := rediscache.GetRedisClient("localhost:6379", "", 0, intervalInSeconds, requestsPerInterval); err != nil {
+	if c, err := rediscache.GetRedisClient("localhost:6379", "", 0, windowInSeconds, maxRequestsPerWindow); err != nil {
 		return nil, err
 	} else {
-		r := &RateLimiter{client: c, intervalInSeconds: intervalInSeconds, requestsPerInterval: requestsPerInterval}
+		r := &RateLimiter{client: c}
 		return r, nil
 	}
 }
 
-func (l RateLimiter) IsRequestAllowedForIP(ip string) (bool, error) {
-	numRequests, err := l.client.IncAndGetRequestsWithinInterval(ip, l.intervalInSeconds)
+func (l RateLimiter) GetIsRequestAllowedAndWaitTime(id string) (bool, int, error) {
+	ccr, err := l.client.HandleNewRequest(id)
 	if err != nil {
-		return false, fmt.Errorf("could'nt get number of requests made this interval because %v", err)
+		return false, 0, fmt.Errorf("could'nt get number of requests made this interval because %v", err)
 	}
-	if numRequests > l.requestsPerInterval {
-		return false, nil
+	if !ccr.Allowed {
+		return false, 0, nil
 	}
-	return true, nil
+	return true, 0, nil
 }
 
-func (l RateLimiter) HandleRequest(handler http.Handler) http.Handler {
+func (l RateLimiter) HandleRequestsByIP(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get user's IP
 		ip := utils.GetIP(r)
 		fmt.Printf("handling request for IP %v\n", ip)
-		if allowed, err := l.IsRequestAllowedForIP(ip); err != nil {
+		var ccr cache.CacheClientResponse
+		var err error
+		if ccr, err = l.client.HandleNewRequest(ip); err != nil {
 			fmt.Printf("%+v", err.Error())
 			http.Error(w, http.StatusText(500), http.StatusInternalServerError)
 			return
 
-		} else if !allowed {
-			http.Error(w, http.StatusText(429), http.StatusTooManyRequests)
+		} else if !ccr.Allowed {
+			http.Error(w, fmt.Sprintf("Rate limit exceeded. Try again in %v seconds", ccr.WaitFor), http.StatusTooManyRequests)
 			return
 		}
 		handler.ServeHTTP(w, r)

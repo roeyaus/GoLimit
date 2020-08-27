@@ -1,5 +1,11 @@
 package cache
 
 type CacheClient interface {
-	IncAndGetRequestsWithinInterval(id string, intervalInSeconds int) (int, error)
+	HandleNewRequest(id string) (CacheClientResponse, error)
+}
+
+type CacheClientResponse struct {
+	Allowed              bool
+	WaitFor              int
+	RequestsMadeInWindow int
 }

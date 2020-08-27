@@ -16,7 +16,7 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", ExampleHandler)
-	if err := http.ListenAndServe(":8080", limiter.HandleRequest(mux)); err != nil {
+	if err := http.ListenAndServe(":8080", limiter.HandleRequestsByIP(mux)); err != nil {
 		panic(err)
 	}
 }

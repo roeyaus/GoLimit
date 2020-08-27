@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getMockRedisClient(intervalInSeconds int, requestsPerInterval int) (*RedisClient, error) {
+func getMockRedisClient(windowInSeconds int, maxRequestsPerWindow int) (*RedisClient, error) {
 	mr, err := miniredis.Run()
 	if err != nil {
 		panic(err)
@@ -22,7 +22,7 @@ func getMockRedisClient(intervalInSeconds int, requestsPerInterval int) (*RedisC
 	})
 	mc := redismock.NewNiceMock(client)
 
-	return &RedisClient{redisClient: mc, intervalInSeconds: intervalInSeconds, requestsPerInterval: requestsPerInterval}, nil
+	return &RedisClient{redisClient: mc, WindowInSeconds: windowInSeconds, MaxRequestsPerWindow: maxRequestsPerWindow}, nil
 }
 func TestGetTimestampByInterval(t *testing.T) {
 	var ts int64
@@ -36,88 +36,93 @@ func TestGetTimestampByInterval(t *testing.T) {
 
 }
 
-func TestIncAndGetRequestsWithinIntervalSync(t *testing.T) {
+func TestHandleNewRequestSync(t *testing.T) {
 	client, _ := getMockRedisClient(1, 1)
 	//test multiple requests, same IP, per interval
-	req, err := client.IncAndGetRequestsWithinInterval("192.168.0.1", client.intervalInSeconds)
+	req, err := client.HandleNewRequest("192.168.0.1")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
 	}
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.1", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.1")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 2, req)
+		assert.Equal(t, 2, req.RequestsMadeInWindow)
 	}
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.1", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.1")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 3, req)
+		assert.Equal(t, 3, req.RequestsMadeInWindow)
 	}
-	//test one request, same IP, per interval
-	client, _ = getMockRedisClient(1, 1)
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.1", client.intervalInSeconds)
+	//test one request, same IP, per window
+	client, _ = getMockRedisClient(5, 1)
+	req, err = client.HandleNewRequest("192.168.0.1")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
-	}
-	time.Sleep(2 * time.Second)
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.1", client.intervalInSeconds)
-	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
 	}
 	time.Sleep(2 * time.Second)
+	req, err = client.HandleNewRequest("192.168.0.1")
+	if assert.NoError(t, err) {
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
+	}
+	time.Sleep(2 * time.Second)
+	req, err = client.HandleNewRequest("192.168.0.1")
+	if assert.NoError(t, err) {
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
+	}
 
 	//test multiple requests, different IPs, per interval
 	client, _ = getMockRedisClient(1, 1)
 	//test multiple requests, same IP, per interval
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.1", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.1")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
 	}
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.2", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.2")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
 	}
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.3")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
 	}
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.3")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 2, req)
+		assert.Equal(t, 2, req.RequestsMadeInWindow)
 	}
 }
 
 func TestSlidingWindowConcurrent(t *testing.T) {
-	client, _ := getMockRedisClient(1, 1)
+	client, _ := getMockRedisClient(5, 1)
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func(c *RedisClient) {
-			_, err := client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+			_, err := client.HandleNewRequest("192.168.0.3")
 			assert.NoError(t, err)
 			wg.Done()
 		}(client)
 	}
 	wg.Wait()
-	req, err := client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	req, err := client.HandleNewRequest("192.168.0.3")
 	assert.NoError(t, err)
-	assert.Equal(t, 21, req)
+	assert.Equal(t, 21, req.RequestsMadeInWindow)
 
 }
 
 func TestSlidingWindowMove(t *testing.T) {
-	client, _ := getMockRedisClient(5, 5)
+	client, _ := getMockRedisClient(5, 4)
 	for i := 0; i < 4; i++ {
-		_, err := client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+		_, err := client.HandleNewRequest("192.168.0.3")
 		assert.NoError(t, err)
 		time.Sleep(1 * time.Second)
 	}
-	req, err := client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	req, err := client.HandleNewRequest("192.168.0.3")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 5, req)
+		assert.Equal(t, 5, req.RequestsMadeInWindow)
+		assert.Equal(t, false, req.Allowed)
 	}
-	time.Sleep(5 * time.Second)
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	time.Sleep(6 * time.Second)
+	req, err = client.HandleNewRequest("192.168.0.3")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 1, req)
+		assert.Equal(t, 1, req.RequestsMadeInWindow)
 	}
 }
 
@@ -130,19 +135,23 @@ func TestSlidingWindowEdgesConcurrent(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
 		go func(c *RedisClient) {
-			_, err := client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+			_, err := client.HandleNewRequest("192.168.0.3")
 			assert.NoError(t, err)
 			wg.Done()
 		}(client)
 	}
 	wg.Wait()
-	req, err := client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	req, err := client.HandleNewRequest("192.168.0.3")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 6, req)
+		assert.Equal(t, 6, req.RequestsMadeInWindow)
 	}
 	time.Sleep(2 * time.Second)
-	req, err = client.IncAndGetRequestsWithinInterval("192.168.0.3", client.intervalInSeconds)
+	req, err = client.HandleNewRequest("192.168.0.3")
 	if assert.NoError(t, err) {
-		assert.Equal(t, 7, req)
+		assert.Equal(t, 7, req.RequestsMadeInWindow)
 	}
+}
+
+func testCalculateTimeToWait(t *testing.T) {
+
 }
