@@ -36,14 +36,16 @@ Implementation is such that a requester's IP will be limited to N requests per X
 For our default implementation, We'll use a sliding window algorithm using redis for in-memory persistance. Redis can be later deployed on its own Kubernetes pod or used as a managed cloud service.
 
 ** Since the number of requests per time period is configurable, it's necessary to have some constraints to save memory and processing time. 
+
 Effectively, if X < 60, we treat the interval verbatim. (in seconds)
 if x > 60 but <= 3600 , we round timestamps down to the nearest minute, and if x > 3600 we round down to the nearest hour.
+
 This is because if we had a window of 10 hours and we measure every second we would have 36000 entries per user at any given time. By having less resolution on our request counts we limit that to basically ~60 entries per user at the most.
 
 As mentioned, The algorithm is a sliding window with a small twist .
 Since our resolution is sometimes coarse, for larger intervals we treat the requests made in the current window as distributed *evenly*.  (See this document : https://blog.cloudflare.com/counting-things-a-lot-of-different-things/)
 
-*** Doing it like that means it's hard to measure the time left until the user can make a request and indeed my implementation doesn't do a very good job. I couldn't think of a better one within a reasonable period of time. *** 
+**Doing it like that means it's hard to measure the time left until the user can make a request and indeed my implementation doesn't do a very good job. I couldn't think of a better one within a reasonable period of time.**
 
 We'll use Redis to handle the request counts etc.
 This is because :
@@ -68,6 +70,31 @@ type CacheClientResponse struct {
 }
 ```
 
-ratelimiter can then use 
+Then instantiate a new ratelimiter with your customClient 
+```
+limiter, err := ratelimiter.NewRateLimiterWithCacheClient(WindowSize, RequestsPerWindow, customClient)
+```
 
-In addition, we shall provide an interface that can be extended with a different rate limiting implementation and used instead.
+
+**Airtasker values**
+
+Stay open  - for me this means that things should not be allowed to simmer in the background. If something's not working like it should, there should be a (friendly) discussion on it as soon as possible and expectations should be set well, both for projects and people. 
+
+Fit for purpose - I'm a full-on pragmatist. I will use whatever tools are best for the job, not just because they're new or "trendy". I treat anything I do in this way.
+
+People matter - completely agree, I've been in too many companies who treat people like "resources". I'd say that someone who feels the company is looking out for them is at least 2x more productive.
+
+When it’s on it’s on - As someone's whose been doing startups for the past few years, I know how intense it can be when something's urgent. I've also learned not to over-do "urgent" since that blurs the lines between what's actually important and what's not.
+
+Own it - I believe in complete ownership. Everyone should feel like they own their work - that's when people really start contributing. 
+
+Lastly...
+● What is important to you in your career? 
+Past couple of years I've only been doing startups which a different kind of challenge.
+I'm currently looking to work where I can see actual scale from millions of users.
+
+● What excites you about Airtasker and the opportunity? 
+I think Airtasker is well positioned in the global gig economy and the scale things are at seems really interesting. Also seems to be alot of opportunities to contribute in different parts of the business.
+
+● What would you like us to know about you? 
+I've been playing guitar drums and bass guitar for more than 20 years and am an avid music lover.
