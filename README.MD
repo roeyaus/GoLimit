@@ -11,8 +11,13 @@ limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow)
 if err != nil {
   fmt.Printf("%v", err)
 }
-limiter.HandleRequestsByIP(<HTTP HANDLER>)  //rate limits requests according to request's origin IP.
-
+//to handle requests directly by IP
+mux := http.NewServeMux()
+mux.HandleFunc("/", ExampleHandler)
+if err := http.ListenAndServe(":8080", limiter.HandleRequestsByIP(mux)); err != nil {
+  panic(err)
+}
+//for other ID's that are not IPs, or to just use rate limiting : 
 allowed, waitFor, err := limiter.GetIsRequestAllowedAndWaitTime(<UNIQUE ID>) //rate limits anything by unique ID, returns if request is allowed and time to wait until allowed if not 
 ```
 
