@@ -7,10 +7,19 @@ RateLimiter is a Golang package for rate-limiting requests.
 Usage : 
 
 ```
+import "github.com/roeyaus/airtasker/ratelimiter"
+
+//use default cache client (redis + sliding window)
 limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow)
+
+//or to use a different strategy/client
+cacheClient = &MyCacheClient{}
+limiter, err := ratelimiter.NewRateLimiterWithCacheClient(WindowSize, RequestsPerWindow, cacheClient)
+
 if err != nil {
   fmt.Printf("%v", err)
 }
+
 //to handle requests directly by IP
 mux := http.NewServeMux()
 mux.HandleFunc("/", ExampleHandler)
@@ -20,6 +29,7 @@ if err := http.ListenAndServe(":8080", limiter.HandleRequestsByIP(mux)); err != 
 //for other ID's that are not IPs, or to just use rate limiting : 
 allowed, waitFor, err := limiter.GetIsRequestAllowedAndWaitTime(<UNIQUE ID>) //rate limits anything by unique ID, returns if request is allowed and time to wait until allowed if not 
 ```
+
 
 
 Implementation is such that a requester's IP will be limited to N requests per X seconds
@@ -43,17 +53,21 @@ This is because :
 With Redis, we use a Hash and save all previous request timestamps within our defined window. We do this in different resolutions (sec/min/hour) depending on window. See above.
 
 
+Extensibility:
+ratelimiter provides a CacheClient interface to implement a different rate limiting strategy using a different kind of caching mechanism.
 
+```
+type CacheClient interface {
+	HandleNewRequest(id string) (CacheClientResponse, error)
+}
 
-    
+type CacheClientResponse struct {
+	Allowed              bool
+	WaitFor              int
+	RequestsMadeInWindow int
+}
+```
+
+ratelimiter can then use 
 
 In addition, we shall provide an interface that can be extended with a different rate limiting implementation and used instead.
-
-
-Things left to do : 
-
-* make shit work (fix redis go pipeline) <--- DONE
-* Make redismock v7.0.1 work <--- DONE
-* tests, integration tests <--- DONE
-* Add generic extensible interface <-- partially done
-* Time to wait <--- DONE, but statistically not accurate.

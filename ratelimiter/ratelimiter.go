@@ -13,7 +13,7 @@ type RateLimiter struct {
 	client cache.CacheClient
 }
 
-func NewRateLimiter(windowInSeconds int, maxRequestsPerWindow int) (*RateLimiter, error) {
+func NewRateLimiter(windowInSeconds, maxRequestsPerWindow int) (*RateLimiter, error) {
 	if maxRequestsPerWindow < 1 {
 		return nil, fmt.Errorf("maxRequestsPerWindow must be > 0")
 	}
@@ -26,6 +26,20 @@ func NewRateLimiter(windowInSeconds int, maxRequestsPerWindow int) (*RateLimiter
 		r := &RateLimiter{client: c}
 		return r, nil
 	}
+}
+
+func NewRateLimiterWithCacheClient(windowInSeconds, maxRequestsPerWindow int, cacheClient cache.CacheClient) (*RateLimiter, error) {
+	if cacheClient == nil {
+		return nil, fmt.Errorf("CacheClient must not be nil")
+	}
+	if maxRequestsPerWindow < 1 {
+		return nil, fmt.Errorf("maxRequestsPerWindow must be > 0")
+	}
+	if windowInSeconds < 1 {
+		return nil, fmt.Errorf("windowInSeconds must be > 0")
+	}
+	return &RateLimiter{client: cacheClient}, nil
+
 }
 
 func (l RateLimiter) GetIsRequestAllowedAndWaitTime(id string) (bool, int, error) {
