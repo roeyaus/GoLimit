@@ -107,7 +107,7 @@ func (c RedisClient) HandleNewRequest(id string) (cache.CacheClientResponse, err
 	//we know the number of requests made during the previous interval,
 	//now we use this calculation :
 	//requests in prev interval * ((window - seconds elapsed in current interval)/window) + requests in current interval
-	//to estimate the number of requests within our window
+	//This spaces out requests evenly across the window, so some precision is lost.
 	totalRequestsInWindow := int(float32(totalRequestsInPrevInterval)*(float32(c.WindowInSeconds-secondsElapsed)/float32(c.WindowInSeconds))) + totalRequestsInInterval
 
 	//now check if the key is set to expire or not and create an expiry for it
