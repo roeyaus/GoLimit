@@ -3,15 +3,17 @@ Hi Airtasker,
 Thanks for letting me take part in the challenge.
 
 RateLimiter is a Golang package for rate-limiting requests. 
+
 Usage : 
+
 ```
-	limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow)
-	if err != nil {
-		fmt.Printf("%v", err)
-	}
-  limiter.HandleRequestsByIP(<HTTP HANDLER>)  //rate limits requests according to request's origin IP.
-  
-  allowed, waitFor, err := limiter.GetIsRequestAllowedAndWaitTime(<UNIQUE ID>) //rate limits anything by unique ID, returns if request is allowed and time to wait until allowed if not 
+limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow)
+if err != nil {
+  fmt.Printf("%v", err)
+}
+limiter.HandleRequestsByIP(<HTTP HANDLER>)  //rate limits requests according to request's origin IP.
+
+allowed, waitFor, err := limiter.GetIsRequestAllowedAndWaitTime(<UNIQUE ID>) //rate limits anything by unique ID, returns if request is allowed and time to wait until allowed if not 
 ```
 
 
