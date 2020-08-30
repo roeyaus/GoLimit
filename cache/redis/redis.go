@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -138,8 +139,10 @@ func getTimestampByInterval(windowInSeconds int, ts int64) int64 {
 //statistically space out the requests in the window evenly
 //**** this is not accurate due to the fact that it's calculated much the same way as the sliding window.
 func (c RedisClient) calculateTimeToWait(totalRequestsInWindow int) int {
-
+	if totalRequestsInWindow == 0 {
+		return 0
+	}
 	secBetweenRequests := int(float32(c.WindowInSeconds) / float32(totalRequestsInWindow))
 	fmt.Printf("WindowInSeconds : %v, totalRequestsInWindow : %v, secBetweenRequests : %v\n", c.WindowInSeconds, totalRequestsInWindow, secBetweenRequests)
-	return ((totalRequestsInWindow - c.MaxRequestsPerWindow + 1) * secBetweenRequests) + 1
+	return int(math.Max(float64((totalRequestsInWindow-c.MaxRequestsPerWindow+1)*(secBetweenRequests+1)), 0))
 }

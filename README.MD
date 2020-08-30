@@ -10,7 +10,7 @@ RateLimiter is a Golang package for rate-limiting requests.
 import "github.com/roeyaus/airtasker/ratelimiter"
 
 //use default cache client (redis + sliding window)
-limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow)
+limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow, "localhost:6379", "", 0)
 
 //or to use a different strategy/client
 cacheClient = &MyCacheClient{}
@@ -45,13 +45,15 @@ For our default implementation, We'll use a sliding window algorithm using redis
 
 ** Since the number of requests per time period is configurable, it's necessary to have some constraints to save memory and processing time. 
 
-Effectively, if X < 60, we treat the interval verbatim. (in seconds)
+Effectively, if X < 60, we treat the interval verbatim(in seconds), 
 if x > 60 but <= 3600 , we round timestamps down to the nearest minute, and if x > 3600 we round down to the nearest hour.
 
 This is because if we had a window of 10 hours and we measure every second we would have 36000 entries per user at any given time. By having less resolution on our request counts we limit that to basically ~60 entries per user at the most.
 
 As mentioned, The algorithm is a sliding window with a small twist .
 Since our resolution is sometimes coarse, for larger intervals we treat the requests made in the current window as distributed *evenly*.  (See this document : https://blog.cloudflare.com/counting-things-a-lot-of-different-things/)
+
+Also, in this implementation users are "penalised" for requests over their limit, as requests are still counted even if they're over the limit in the window and are denied. This requires users not to pound the server if they wish to be served.
 
 **Doing it like that means it's hard to measure the time left until the user can make a request and indeed my implementation doesn't do a very good job. I couldn't think of a better one within a reasonable period of time.**
 
