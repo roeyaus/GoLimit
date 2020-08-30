@@ -4,7 +4,7 @@ Thanks for letting me take part in the challenge.
 
 RateLimiter is a Golang package for rate-limiting requests. 
 
-Usage : 
+**Usage :** 
 
 ```
 import "github.com/roeyaus/airtasker/ratelimiter"
@@ -31,6 +31,14 @@ allowed, waitFor, err := limiter.GetIsRequestAllowedAndWaitTime(<UNIQUE ID>) //r
 ```
 
 
+**For running with real redis, run :** 
+```
+docker run --name some-redis -p 6379:6379 -d redis redis-server
+```
+
+which will create a local redis container. Just remember to instantiate the RateLimiter with redisHost="localhost:6379" , redisPasword="" and redisDB=0 
+
+**Implementation:**
 
 Implementation is such that a requester's IP will be limited to N requests per X seconds
 For our default implementation, We'll use a sliding window algorithm using redis for in-memory persistance. Redis can be later deployed on its own Kubernetes pod or used as a managed cloud service.
@@ -55,7 +63,8 @@ This is because :
 With Redis, we use a Hash and save all previous request timestamps within our defined window. We do this in different resolutions (sec/min/hour) depending on window. See above.
 
 
-Extensibility:
+**Extensibility:**
+
 ratelimiter provides a CacheClient interface to implement a different rate limiting strategy using a different kind of caching mechanism.
 
 ```
@@ -75,6 +84,12 @@ Then instantiate a new ratelimiter with your customClient
 limiter, err := ratelimiter.NewRateLimiterWithCacheClient(WindowSize, RequestsPerWindow, customClient)
 ```
 
+**Testing:**
+
+I use a Redis mocking library for testing in order to alleviate the need to create a local redis cluster.
+The tests cover most of the basic necessities of the redis cache implementation, and some general RateLimiter tests as well.
+
+
 
 **Airtasker values**
 
@@ -88,7 +103,8 @@ When it’s on it’s on - As someone's whose been doing startups for the past f
 
 Own it - I believe in complete ownership. Everyone should feel like they own their work - that's when people really start contributing. 
 
-Lastly...
+**Lastly... about me** 
+
 ● What is important to you in your career? 
 Past couple of years I've only been doing startups which a different kind of challenge.
 I'm currently looking to work where I can see actual scale from millions of users.

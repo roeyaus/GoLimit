@@ -13,14 +13,14 @@ type RateLimiter struct {
 	client cache.CacheClient
 }
 
-func NewRateLimiter(windowInSeconds, maxRequestsPerWindow int) (*RateLimiter, error) {
+func NewRateLimiter(windowInSeconds, maxRequestsPerWindow int, redisHost, redisPassword string, redisDB int) (*RateLimiter, error) {
 	if maxRequestsPerWindow < 1 {
 		return nil, fmt.Errorf("maxRequestsPerWindow must be > 0")
 	}
 	if windowInSeconds < 1 {
 		return nil, fmt.Errorf("windowInSeconds must be > 0")
 	}
-	if c, err := rediscache.GetRedisClient("localhost:6379", "", 0, windowInSeconds, maxRequestsPerWindow); err != nil {
+	if c, err := rediscache.GetRedisClient(redisHost, redisPassword, redisDB, windowInSeconds, maxRequestsPerWindow); err != nil {
 		return nil, err
 	} else {
 		r := &RateLimiter{client: c}

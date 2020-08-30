@@ -14,7 +14,7 @@ import (
 var ctx = context.Background()
 
 type RedisClient struct {
-	redisClient          redis.Cmdable
+	RedisClient          redis.Cmdable
 	WindowInSeconds      int
 	MaxRequestsPerWindow int
 }
@@ -29,7 +29,7 @@ func GetRedisClient(redisAddr string, redisPassword string, redisDB int, windowI
 		return nil, errors.New("cannot create redis client")
 	}
 
-	return &RedisClient{redisClient: c, WindowInSeconds: windowInSeconds, MaxRequestsPerWindow: maxRequestsPerWindow}, nil
+	return &RedisClient{RedisClient: c, WindowInSeconds: windowInSeconds, MaxRequestsPerWindow: maxRequestsPerWindow}, nil
 }
 
 //HandleNewRequest will atomically increase request count for id by 1 and return the updated number of requests
@@ -49,7 +49,7 @@ func (c RedisClient) HandleNewRequest(id string) (cache.CacheClientResponse, err
 	//even if multiple clients arrive here at the same time, they will each see a valid request count
 	//if the key(userID) expires this just recreates it with the current timestamp
 	var cmd2 *redis.StringStringMapCmd
-	pipe := c.redisClient.TxPipeline()
+	pipe := c.RedisClient.TxPipeline()
 	_ = pipe.HIncrBy(id, roundedts, 1)
 
 	cmd2 = pipe.HGetAll(id)
@@ -103,6 +103,7 @@ func (c RedisClient) HandleNewRequest(id string) (cache.CacheClientResponse, err
 	fmt.Printf("secondsElapsedInInterval : %v, minWindowTS : %v\n", secondsElapsed, minWindowTS)
 	if currentTS != minWindowTS && int(currentTS-minWindowTS) < windowInSeconds {
 		windowInSeconds = int(currentTS - minWindowTS)
+		fmt.Printf("windowInSeconds : %v", windowInSeconds)
 	}
 	//we know the number of requests made during the previous interval,
 	//now we use this calculation :
@@ -111,9 +112,9 @@ func (c RedisClient) HandleNewRequest(id string) (cache.CacheClientResponse, err
 	totalRequestsInWindow := int(float32(totalRequestsInPrevInterval)*(float32(c.WindowInSeconds-secondsElapsed)/float32(c.WindowInSeconds))) + totalRequestsInInterval
 
 	//now check if the key is set to expire or not and create an expiry for it
-	_ = c.redisClient.Expire(id, time.Second*time.Duration(c.WindowInSeconds))
+	_ = c.RedisClient.Expire(id, time.Second*time.Duration(c.WindowInSeconds))
 
-	resp.Allowed = totalRequestsInWindow < c.MaxRequestsPerWindow
+	resp.Allowed = totalRequestsInWindow <= c.MaxRequestsPerWindow
 	if !resp.Allowed {
 		resp.WaitFor = c.calculateTimeToWait(totalRequestsInWindow)
 	}
@@ -140,5 +141,5 @@ func (c RedisClient) calculateTimeToWait(totalRequestsInWindow int) int {
 
 	secBetweenRequests := int(float32(c.WindowInSeconds) / float32(totalRequestsInWindow))
 	fmt.Printf("WindowInSeconds : %v, totalRequestsInWindow : %v, secBetweenRequests : %v\n", c.WindowInSeconds, totalRequestsInWindow, secBetweenRequests)
-	return (totalRequestsInWindow - c.MaxRequestsPerWindow + 1) * secBetweenRequests
+	return ((totalRequestsInWindow - c.MaxRequestsPerWindow + 1) * secBetweenRequests) + 1
 }
