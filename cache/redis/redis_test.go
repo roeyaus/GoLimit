@@ -101,9 +101,9 @@ func TestHandleNewRequestSync(t *testing.T) {
 }
 
 func TestSlidingWindowConcurrent(t *testing.T) {
-	client, _ := getMockRedisClient(5, 1)
+	client, _ := getMockRedisClient(3600, 100)
 	var wg sync.WaitGroup
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(c *RedisClient) {
 			_, err := client.HandleNewRequest("192.168.0.3")
@@ -114,7 +114,7 @@ func TestSlidingWindowConcurrent(t *testing.T) {
 	wg.Wait()
 	req, err := client.HandleNewRequest("192.168.0.3")
 	assert.NoError(t, err)
-	assert.Equal(t, 21, req.RequestsMadeInWindow)
+	assert.Equal(t, 101, req.RequestsMadeInWindow)
 	assert.Equal(t, false, req.Allowed)
 
 }
