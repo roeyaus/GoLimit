@@ -1,7 +1,3 @@
-Hi Airtasker,
-
-Thanks for letting me take part in the challenge.
-
 RateLimiter is a Golang package for rate-limiting requests. 
 
 **Usage :** 
