@@ -87,28 +87,3 @@ limiter, err := ratelimiter.NewRateLimiterWithCacheClient(WindowSize, RequestsPe
 I use a Redis mocking library for testing in order to alleviate the need to create a local redis cluster.
 The tests cover most of the basic necessities of the redis cache implementation, and some general RateLimiter tests as well.
 
-
-
-**Airtasker values**
-
-Stay open  - for me this means that things should not be allowed to simmer in the background. If something's not working like it should, there should be a (friendly) discussion on it as soon as possible and expectations should be set well, both for projects and people. 
-
-Fit for purpose - I'm a full-on pragmatist. I will use whatever tools are best for the job, not just because they're new or "trendy". I treat anything I do in this way.
-
-People matter - completely agree, I've been in too many companies who treat people like "resources". I'd say that someone who feels the company is looking out for them is at least 2x more productive.
-
-When it’s on it’s on - As someone's whose been doing startups for the past few years, I know how intense it can be when something's urgent. I've also learned not to over-do "urgent" since that blurs the lines between what's actually important and what's not.
-
-Own it - I believe in complete ownership. Everyone should feel like they own their work - that's when people really start contributing. 
-
-**Lastly... about me** 
-
-● What is important to you in your career? 
-Past couple of years I've only been doing startups which a different kind of challenge.
-I'm currently looking to work where I can see actual scale from millions of users.
-
-● What excites you about Airtasker and the opportunity? 
-I think Airtasker is well positioned in the global gig economy and the scale things are at seems really interesting. Also seems to be alot of opportunities to contribute in different parts of the business.
-
-● What would you like us to know about you? 
-I've been playing guitar drums and bass guitar for more than 20 years and am an avid music lover.
