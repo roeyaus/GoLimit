@@ -3,7 +3,7 @@ RateLimiter is a Golang package for rate-limiting requests.
 **Usage :** 
 
 ```
-import "github.com/roeyaus/airtasker/ratelimiter"
+import "github.com/roeyaus/golimit/ratelimiter"
 
 //use default cache client (redis + sliding window)
 limiter, err := ratelimiter.NewRateLimiter(WindowSize, RequestsPerWindow, "localhost:6379", "", 0)
